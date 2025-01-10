@@ -1215,5 +1215,5 @@ bot.on("polling_error", (error) => {
 });
 
 bot.on("error", (error) => {
-  console.error("Error occurred:", error);
+  console.error("Errors  occurred::", error);
 });
