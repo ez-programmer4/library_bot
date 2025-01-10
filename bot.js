@@ -933,17 +933,8 @@ bot.onText(
     }
 
     const userName = match[1]; // User name
-    const bookId = match[2]; // Book ID (make sure this is numeric)
+    const bookId = match[2]; // Book ID
     const pickupTime = match[3] || "after isha salah"; // Optional pickup time
-
-    // Check if the user is registered
-    const user = await User.findOne({ userName });
-    if (!user) {
-      return bot.sendMessage(
-        chatId,
-        "👤 User not found. Registration is required before reserving a book."
-      );
-    }
 
     // Find the book by ID
     const book = await Book.findOne({ id: bookId });
@@ -955,9 +946,9 @@ bot.onText(
       );
     }
 
-    // Create the reservation
+    // Create the reservation without checking for user registration
     const reservation = new Reservation({
-      userId: user._id,
+      userName, // Store the username directly
       bookId: book._id,
       pickupTime,
     });
@@ -967,12 +958,12 @@ bot.onText(
     await book.save();
 
     await notifyLibrarian(
-      `🆕 New manual reservation for ${user.userName} for "${book.title}".`,
-      { parse_mode: "Markdown" } // Specify parse_mode if needed
+      `🆕 New manual reservation for ${userName} for "${book.title}".`,
+      { parse_mode: "Markdown" }
     );
     bot.sendMessage(
       chatId,
-      `✅ Successfully added reservation for *${user.userName}* for *"${book.title}"*.`,
+      `✅ Successfully added reservation for *${userName}* for *"${book.title}"*.`,
       { parse_mode: "Markdown" }
     );
   }
@@ -1055,7 +1046,7 @@ bot.on("message", async (msg) => {
   }
 });
 
-bot.onText(/\/remove_book (\w+) (.+) (\d+)/, async (msg, match) => {
+bot.onText(/\/remove_book (\d+)/, async (msg, match) => {
   const chatId = msg.chat.id;
 
   // Debugging: Log the incoming message
@@ -1074,40 +1065,32 @@ bot.onText(/\/remove_book (\w+) (.+) (\d+)/, async (msg, match) => {
   }
 
   // Check if match array is valid
-  if (!match || match.length < 4) {
+  if (!match || match.length < 2) {
     console.log(`Invalid command syntax: ${msg.text}`);
     return bot.sendMessage(
       chatId,
-      "❌ Invalid command syntax. Please use: /remove_book <language> <category> <id>."
+      "❌ Invalid command syntax. Please use: /remove_book <id>."
     );
   }
 
-  const language = match[1].trim();
-  const category = match[2].trim();
-  const id = parseInt(match[3], 10);
+  const id = parseInt(match[1], 10);
 
   // Debugging: Log the parameters
-  console.log(
-    `Attempting to remove book  Language: ${language}, Category: ${category}, ID: ${id}`
-  );
+  console.log(`Attempting to remove book with ID: ${id}`);
 
-  // Attempt to find and remove the book
-  const book = await Book.findOneAndDelete({ id, language, category });
+  // Attempt to find and remove the book by ID
+  const book = await Book.findOneAndDelete({ id });
   if (!book) {
-    console.log(`No book found with ID ${id} in category "${category}".`);
-    return bot.sendMessage(
-      chatId,
-      `❌ No book found with ID *${id}* in category *"${category}".*`,
-      { parse_mode: "Markdown" }
-    );
+    console.log(`No book found with ID ${id}.`);
+    return bot.sendMessage(chatId, `❌ No book found with ID *${id}*.`, {
+      parse_mode: "Markdown",
+    });
   }
 
-  console.log(
-    `Book with ID ${id} has been removed from category "${category}".`
-  );
+  console.log(`Book with ID ${id} has been removed.`);
   bot.sendMessage(
     chatId,
-    `✅ Book with ID *${id}* has been removed from category *"${category}"* in *${language}*.`,
+    `✅ Book with ID *${id}* has been removed successfully.`,
     { parse_mode: "Markdown" }
   );
 });
@@ -1169,19 +1152,20 @@ bot.onText(/\/help/, (msg) => {
 
 Here are the commands you can use:
 
+➡️ 📋 /register: Register yourself to start using the library services.
+   Example: /register
 
-
- 🌐 /select_language: Change your preferred language.
+➡️ 🌐 /select_language: Change your preferred language.
    Example: /change_language
 
 
- 📖 /reserve <book_id>: Reserve a specific book.
+➡️ 📖 /reserve <book_id>: Reserve a specific book.
    Example: /reserve_book 112
 
- 📝 /my_reservations: View your current reservations.
+➡️ 📝 /my_reservations: View your current reservations.
    Example: /my_reservations
 
- ❌ /cancel_reservation <number>: Cancel a specific reservation by its number.
+➡️ ❌ /cancel_reservation <number>: Cancel a specific reservation by its number.
    Example: /cancel_reservation 1
 
 For more questions, feel free to reach out to us via @IrshadComments_bot! 📩
@@ -1214,5 +1198,5 @@ bot.on("polling_error", (error) => {
 });
 
 bot.on("error", (error) => {
-  console.error("Errors  occurred::", error);
+  console.error("Error occurred:", error);
 });
