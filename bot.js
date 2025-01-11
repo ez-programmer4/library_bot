@@ -120,7 +120,7 @@ async function handleReserveCommand(chatId, bookId) {
       );
       return bot.sendMessage(
         chatId,
-        "🚫 You need to register first using /register."
+        "🚫 You need to register first using /start."
       );
     }
 
@@ -188,7 +188,7 @@ async function handleCancelReservation(chatId, bookId) {
     if (!user) {
       return bot.sendMessage(
         chatId,
-        "🚫 You need to register first using /register."
+        "🚫 You need to register first using /start."
       );
     }
 
@@ -779,7 +779,7 @@ bot.onText(/\/my_reservations/, async (msg) => {
   if (!user) {
     return bot.sendMessage(
       chatId,
-      "🚫 You need to register first using /register."
+      "🚫 You need to register first using /start."
     );
   }
 
