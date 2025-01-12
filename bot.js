@@ -882,6 +882,9 @@ bot.onText(/\/view_reservations/, async (msg) => {
   // Fetch reservations from the database
   const reservations = await Reservation.find().populate("userId bookId");
 
+  // Debug log for reservations
+  console.log("Fetched Reservations:", reservations);
+
   // Handle no reservations
   if (reservations.length === 0) {
     return bot.sendMessage(chatId, "📅 There are no reservations.");
@@ -892,6 +895,9 @@ bot.onText(/\/view_reservations/, async (msg) => {
     const userName = res.userId ? res.userId.userName : "Unknown User";
     return `🔖 Book ID: *${res.bookId.id}* → User: *${userName}* → Book: *"${res.bookId.title}"* → Pickup Time: *${res.pickupTime}*`;
   });
+
+  // Debug log for the formatted list
+  console.log("Formatted Reservation List:", reservationList);
 
   // Check if the reservation list is empty after mapping
   if (reservationList.length === 0) {
@@ -905,14 +911,16 @@ bot.onText(/\/view_reservations/, async (msg) => {
 
     for (const message of messages) {
       if (chunk.length + message.length > maxLength) {
-        await bot.sendMessage(chatId, chunk, { parse_mode: "Markdown" });
+        if (chunk.trim().length > 0) {
+          await bot.sendMessage(chatId, chunk, { parse_mode: "Markdown" });
+        }
         chunk = ""; // Reset chunk
       }
       chunk += message + "\n";
     }
 
     // Send any remaining messages
-    if (chunk.length > 0) {
+    if (chunk.trim().length > 0) {
       await bot.sendMessage(chatId, chunk, { parse_mode: "Markdown" });
     }
   };
