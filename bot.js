@@ -771,7 +771,6 @@ bot.onText(/\/add_books (.+)/, async (msg, match) => {
     });
   }
 });
-
 bot.onText(/\/my_reservations/, async (msg) => {
   const chatId = msg.chat.id;
   const user = await User.findOne({ chatId });
@@ -791,20 +790,38 @@ bot.onText(/\/my_reservations/, async (msg) => {
     return bot.sendMessage(chatId, "📭 You currently have no reservations.");
   }
 
+  const escapeMarkdown = (text) => {
+    return text
+      .replace(/_/g, "\\_") // Escape underscores
+      .replace(/\*/g, "\\*") // Escape asterisks
+      .replace(/~/g, "\\~") // Escape tildes
+      .replace(/`/g, "\\`") // Escape backticks
+      .replace(/>/g, "\\>") // Escape greater-than
+      .replace(/#/g, "\\#") // Escape hashtags
+      .replace(/-/g, "\\-") // Escape hyphens
+      .replace(/\+/g, "\\+") // Escape pluses
+      .replace(/=/g, "\\=") // Escape equals
+      .replace(/!/g, "\\!"); // Escape exclamation marks
+  };
+
   const reservationList = userReservations
     .map((res) => {
-      const title = res.bookId.title;
+      const title = escapeMarkdown(res.bookId.title);
       const bookId = res.bookId.id;
       return `📚 Book ID: ${bookId}\n 📄 Title: "${title}"\n ⌚ Pickup: ${res.pickupTime}\n`;
     })
     .join("\n");
 
-  const message = `✨ Your Reservations: ✨\n\n${reservationList}\n\n`;
-  const message1 = ` ❌ To cancel a reservation, \n type ${`/cancel_reservation`} <book_id>.`;
+  const message = `✨ Your Reservations: ✨\n\n${reservationList}\n `;
+
+  // Escape the entire message
+  const escapedMessage = escapeMarkdown(message);
 
   // Send message in chunks if necessary
-  await sendMessageInChunks(chatId, message);
-  await sendMessage(chatId, message1);
+  await sendMessageInChunks(chatId, escapedMessage);
+
+  // // Send message in chunks if necessary
+  // await sendMessageInChunks(chatId, message);
 });
 // Helper function to send messages in chunks if they are too long
 async function sendMessageInChunks(chatId, message) {
