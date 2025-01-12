@@ -888,22 +888,35 @@ bot.onText(/\/view_reservations/, async (msg) => {
   }
 
   // Format the reservation list
-  const reservationList = reservations
-    .map((res) => {
-      const userName = res.userId ? res.userId.userName : "Unknown User";
-      return `🔖 Book ID: *${res.bookId.id}* → User: *${userName}* → Book: *"${res.bookId.title}"* → Pickup Time: *${res.pickupTime}*`;
-    })
-    .join("\n");
-  // Send the list of reservations
-  await bot.sendMessage(
-    chatId,
-    `📚 Current Reservations:\n\n${reservationList}`,
-    {
-      parse_mode: "Markdown",
-    }
-  );
-});
+  const reservationList = reservations.map((res) => {
+    const userName = res.userId ? res.userId.userName : "Unknown User";
+    return `🔖 Book ID: *${res.bookId.id}* → User: *${userName}* → Book: *"${res.bookId.title}"* → Pickup Time: *${res.pickupTime}*`;
+  });
 
+  // Function to send messages in chunks
+  const sendMessageInChunks = async (chatId, messages) => {
+    const maxLength = 4096; // Telegram's max length per message
+    let chunk = "";
+
+    for (const message of messages) {
+      if (chunk.length + message.length > maxLength) {
+        await bot.sendMessage(chatId, chunk, { parse_mode: "Markdown" });
+        chunk = ""; // Reset chunk
+      }
+      chunk += message + "\n";
+    }
+
+    // Send any remaining messages
+    if (chunk.length > 0) {
+      await bot.sendMessage(chatId, chunk, { parse_mode: "Markdown" });
+    }
+  };
+
+  // Send the list of reservations in chunks
+  await sendMessageInChunks(chatId, [
+    `📚 Current Reservations:\n\n${reservationList.join("\n")}`,
+  ]);
+});
 // Function to send messages in chunks
 async function sendMessageInChunks(chatId, message) {
   const maxLength = 4096; // Telegram message character limit
