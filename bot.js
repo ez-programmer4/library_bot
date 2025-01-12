@@ -882,9 +882,6 @@ bot.onText(/\/view_reservations/, async (msg) => {
   // Fetch reservations from the database
   const reservations = await Reservation.find().populate("userId bookId");
 
-  // Debug log for reservations
-  console.log("Fetched Reservations:", reservations);
-
   // Handle no reservations
   if (reservations.length === 0) {
     return bot.sendMessage(chatId, "📅 There are no reservations.");
@@ -896,75 +893,38 @@ bot.onText(/\/view_reservations/, async (msg) => {
     return `🔖 Book ID: *${res.bookId.id}* → User: *${userName}* → Book: *"${res.bookId.title}"* → Pickup Time: *${res.pickupTime}*`;
   });
 
-  // Debug log for the formatted list
-  console.log("Formatted Reservation List:", reservationList);
-
-  // Check if the reservation list is empty after mapping
-  if (reservationList.length === 0) {
-    return bot.sendMessage(chatId, "📅 There are no reservations to display.");
-  }
+  // Debug log
+  console.log("Reservation List:", reservationList);
 
   // Function to send messages in chunks
   const sendMessageInChunks = async (chatId, messages) => {
     const maxLength = 4096; // Telegram's max length per message
-    let chunk = "";
 
+    let chunk = "";
     for (const message of messages) {
       if (chunk.length + message.length > maxLength) {
-        if (chunk.trim().length > 0) {
+        if (chunk.length > 0) {
           await bot.sendMessage(chatId, chunk, { parse_mode: "Markdown" });
         }
-        chunk = ""; // Reset chunk
+        chunk = message + "\n"; // Start a new chunk
+      } else {
+        chunk += message + "\n";
       }
-      chunk += message + "\n";
     }
 
-    // Send any remaining messages
-    if (chunk.trim().length > 0) {
+    // Send any remaining chunk
+    if (chunk.length > 0) {
       await bot.sendMessage(chatId, chunk, { parse_mode: "Markdown" });
     }
   };
 
+  // Prepare the message header
+  const header = `📚 Current Reservations:\n\n`;
+  const fullMessage = [header, ...reservationList];
+
   // Send the list of reservations in chunks
-  await sendMessageInChunks(chatId, [
-    `📚 Current Reservations:\n\n${reservationList.join("\n")}`,
-  ]);
+  await sendMessageInChunks(chatId, fullMessage);
 });
-// Function to send messages in chunks
-async function sendMessageInChunks(chatId, message) {
-  const maxLength = 4096; // Telegram message character limit
-  if (message.length <= maxLength) {
-    await bot.sendMessage(chatId, message, {
-      parse_mode: "Markdown",
-    });
-  } else {
-    // Split message into chunks
-    const chunks = [];
-    let currentChunk = "";
-
-    const messages = message.split("\n"); // Split by line for better chunking
-    for (const line of messages) {
-      if ((currentChunk + line).length <= maxLength) {
-        currentChunk += line + "\n";
-      } else {
-        chunks.push(currentChunk);
-        currentChunk = line + "\n"; // Start a new chunk
-      }
-    }
-    // Push the last chunk if it has content
-    if (currentChunk) {
-      chunks.push(currentChunk);
-    }
-
-    // Send each chunk as a separate message
-    for (const chunk of chunks) {
-      await bot.sendMessage(chatId, chunk, {
-        parse_mode: "Markdown",
-      });
-    }
-  }
-}
-
 bot.onText(
   /\/librarian_add_reservation (\S+) (\d+) ?(.*)?/,
   async (msg, match) => {
