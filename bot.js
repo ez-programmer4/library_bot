@@ -399,6 +399,15 @@ async function handleCategorySelection(chatId, selectedCategory) {
         reply_markup: { inline_keyboard: inlineButtons },
       }
     );
+  } else {
+    // Notify the user that no books are available
+    await bot.sendMessage(
+      chatId,
+      `⚠️ *No available books in* *"${selectedCategory}"*. Please check back later or select a different category.`,
+      {
+        parse_mode: "Markdown",
+      }
+    );
   }
 }
 async function handleMessage(chatId, msg) {
