@@ -3,6 +3,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 require("dotenv").config();
 const { User, Book, Reservation } = require("./models");
+const crypto = require("crypto");
 
 const app = express();
 app.use(express.json());
@@ -647,19 +648,55 @@ async function processPhoneNumber(chatId, phoneNumber) {
   }
 }
 
-// Add a new user or return existing user
+function encryptPhoneNumber(phoneNumber) {
+  const algorithm = "aes-256-cbc";
+  const key = crypto.randomBytes(32); // Use a fixed key for real applications
+  const iv = crypto.randomBytes(16); // Initialization vector
+
+  let cipher = crypto.createCipheriv(algorithm, Buffer.from(key), iv);
+  let encrypted = cipher.update(phoneNumber, "utf-8", "hex");
+  encrypted += cipher.final("hex");
+
+  return {
+    encryptedPhoneNumber: encrypted,
+    key: key.toString("hex"),
+    iv: iv.toString("hex"),
+  };
+}
+
+// Update the addUser function
 async function addUser(chatId, userName, phoneNumber) {
   try {
-    const user = new User({ userName, phoneNumber, chatId });
+    const { encryptedPhoneNumber, key, iv } = encryptPhoneNumber(phoneNumber); // Encrypt the phone number
+    const user = new User({
+      userName,
+      phoneNumber: encryptedPhoneNumber,
+      chatId,
+      key,
+      iv,
+    });
     await user.save();
     console.log(
-      `New user created: ${user.userName}, Phone: ${phoneNumber}, Chat ID: ${chatId}`
+      `New user created: ${user.userName}, Phone: [encrypted], Chat ID: ${chatId}`
     );
     return user;
   } catch (error) {
-    console.error(`Error adding user: ${error.message}`); // Log detailed error
+    console.error(`Error adding user: ${error.message}`);
     throw error; // Rethrow to handle in the calling function
   }
+}
+
+// Function to decrypt the phone number when needed
+function decryptPhoneNumber(encryptedPhoneNumber, key, iv) {
+  const algorithm = "aes-256-cbc";
+  let decipher = crypto.createDecipheriv(
+    algorithm,
+    Buffer.from(key, "hex"),
+    Buffer.from(iv, "hex")
+  );
+  let decrypted = decipher.update(encryptedPhoneNumber, "hex", "utf-8");
+  decrypted += decipher.final("utf-8");
+  return decrypted;
 }
 
 // Notify librarian
