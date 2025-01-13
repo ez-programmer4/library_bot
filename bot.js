@@ -936,7 +936,7 @@ bot.onText(/\/view_reservations/, async (msg) => {
   // Format the reservation list
   const reservationList = reservations.map((res) => {
     const userName = res.userId ? res.userId.userName : "Unknown User";
-    return `🔖 Book ID: *${res.bookId.id}* → User: *${userName}* → Book: *"${res.bookId.title}"* → Pickup Time: *${res.pickupTime}*`;
+    return `🔖 Book ID: *${res.bookId.id}* → Book: *"${res.bookId.title}"* → Pickup Time: *${res.pickupTime}*`;
   });
 
   // Debug log
