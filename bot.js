@@ -125,6 +125,25 @@ async function handleReserveCommand(chatId, bookId) {
       );
     }
 
+    // Log user details for debugging
+    console.log(`User details: ${JSON.stringify(user)}`);
+
+    // Check for key and iv
+    if (!user.key || !user.iv || !user.phoneNumber) {
+      console.error(`Missing key, iv, or phoneNumber for user ${chatId}.`);
+      return bot.sendMessage(
+        chatId,
+        "⚠️ Unable to retrieve your details. Please register again."
+      );
+    }
+
+    // Decrypt the phone number
+    const decryptedPhoneNumber = decryptPhoneNumber(
+      user.phoneNumber,
+      user.key,
+      user.iv
+    );
+
     const reservation = new Reservation({
       userId: user._id,
       bookId: book._id,
@@ -137,8 +156,8 @@ async function handleReserveCommand(chatId, bookId) {
     await book.save();
     console.log(`Book ID ${bookId} marked as unavailable.`);
 
-    // Prepare message without formatting
-    const messageToLibrarian = `📩 New reservation:\n-Book ID:"${book.id}" \n- Title:"${book.title}" \n-Name: ${user.userName}\n-Phone: ${user.phoneNumber}`;
+    // Prepare message with decrypted phone number
+    const messageToLibrarian = `📩 New reservation:\n- Book ID: "${book.id}"\n- Title: "${book.title}"\n- Name: ${user.userName}\n- Phone: ${decryptedPhoneNumber}`;
     console.log("Message to Librarian:", messageToLibrarian); // Log the message
 
     // Notify the librarian without Markdown
@@ -215,6 +234,13 @@ async function handleCancelReservation(chatId, bookId) {
     await book.save();
     await Reservation.findByIdAndDelete(reservation._id);
 
+    // Decrypt the phone number for the notification
+    const decryptedPhoneNumber = decryptPhoneNumber(
+      user.phoneNumber,
+      user.key,
+      user.iv
+    );
+
     // Create an inline keyboard for the back button
     const backButton = {
       reply_markup: {
@@ -235,8 +261,9 @@ async function handleCancelReservation(chatId, bookId) {
       { parse_mode: "Markdown", ...backButton }
     );
 
+    // Notify the librarian with formatted message
     await notifyLibrarian(
-      `📩 User has canceled a reservation:\n- Title:"${book.title}" \n- User ID: ${user._id}\n- Name: ${user.userName}\n- Phone: ${user.phoneNumber}`,
+      `📩 User has canceled a reservation:\n- Title: "${book.title}"\n- User ID: ${user._id}\n- Name: ${user.userName}\n- Phone: ${decryptedPhoneNumber}`,
       { parse_mode: "Markdown" }
     );
   } catch (error) {
@@ -479,7 +506,7 @@ bot.onText(/\/start/, (msg) => {
   
   Please choose an option below:
       
-                 KJUMJ IRSHAD 1445
+                 KJUMJ IRSHAD 1445/46
         •┈┈••✦📖✦••┈┈••✦📖✦••┈┈•
   `;
 
@@ -667,13 +694,13 @@ function encryptPhoneNumber(phoneNumber) {
 // Update the addUser function
 async function addUser(chatId, userName, phoneNumber) {
   try {
-    const { encryptedPhoneNumber, key, iv } = encryptPhoneNumber(phoneNumber); // Encrypt the phone number
+    const { encryptedPhoneNumber, key, iv } = encryptPhoneNumber(phoneNumber);
     const user = new User({
       userName,
-      phoneNumber: encryptedPhoneNumber,
+      phoneNumber: encryptedPhoneNumber, // Store encrypted phone number
       chatId,
-      key,
-      iv,
+      key, // Ensure key is saved
+      iv, // Ensure iv is saved
     });
     await user.save();
     console.log(
@@ -685,7 +712,6 @@ async function addUser(chatId, userName, phoneNumber) {
     throw error; // Rethrow to handle in the calling function
   }
 }
-
 // Function to decrypt the phone number when needed
 function decryptPhoneNumber(encryptedPhoneNumber, key, iv) {
   const algorithm = "aes-256-cbc";
@@ -936,7 +962,7 @@ bot.onText(/\/view_reservations/, async (msg) => {
   // Format the reservation list
   const reservationList = reservations.map((res) => {
     const userName = res.userId ? res.userId.userName : "Unknown User";
-    return `🔖 Book ID: *${res.bookId.id}* → Book: *"${res.bookId.title}"* → Pickup Time: *${res.pickupTime}*`;
+    return `🔖 Book ID: *${res.bookId.id}*  → Book: *"${res.bookId.title}"* → Pickup Time: *${res.pickupTime}*`;
   });
 
   // Debug log
