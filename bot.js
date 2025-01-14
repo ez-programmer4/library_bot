@@ -503,6 +503,8 @@ bot.onText(/\/start/, (msg) => {
         اَلسَّلاَمُ عَلَيْكُمْ وَرَحْمَةُ اللهِ وَبَرَكَاتُهُ
         
   🎉 *Welcome to the KJUMJ IRSHAD Library Booking Bot!* 📚
+
+            FEMALE ONLY ‼️
   
   Please choose an option below:
       
